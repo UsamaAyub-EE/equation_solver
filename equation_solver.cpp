@@ -2,6 +2,7 @@
 #include<vector>
 #include<cstring>
 using namespace std;
+void make_triangular(int choice);
 int GCD(int,int);
 struct indices
 {
@@ -12,6 +13,9 @@ int a,b;	//only find_first_one() uses these variables
 int lead_rows[MAX_SIZE],lead_cols[MAX_SIZE];	//to contain row numbers and column numbers
 //of leading 1s 
 int row_i,col_i;	//these act as both indices and sizes for lead_rows and lead_cols
+vector<string> eq_number{"first","second","third","fourth","fifth","sixth","seventh","eighth",
+"nineth","tenth"}; //these equation numbers will help in taking input
+//from the user	
 class fraction
 {
 	int num,den;//numerator,denominator
@@ -164,7 +168,7 @@ bool fraction::operator >(fraction const &obj)
 }
 indices find_first_one(int m,int n,vector<vector<fraction> > A);
 void make_one(int i,int j,int n,vector<vector<fraction> >& A);
-void make_zero(int i,int j,int m,int n,vector<vector<fraction> >& A);
+void make_zero(int choice,int i,int j,int m,int n,vector<vector<fraction> >& A);
 void row_swap(int i1,int i2,vector<vector<fraction> >& A);
 void print_aug_matrix(int m,int n,vector<vector<fraction> > A);
 bool is_zero(int m,vector<fraction> B);
@@ -178,12 +182,8 @@ int main()
 	"by Usama Ayub and Muhammad Rizwan.\n";
 	cout<<"If you wish to enter a fraction,for example, simply type 3/4 and press enter to \n"
 	"input 3/4\n";
-/*this code can be modified to solve as many equations as is needed. parameters, vars and
-eq_number will have to be modified only. and at line 10, the MAX_SIZE will have to be 
+/*this code can be modified to solve as many equations as is needed. parameters and vars will have to be modified only. and at line 10, the MAX_SIZE will have to be 
 modified*/
-	vector<string> eq_number{"first","second","third","fourth","fifth","sixth","seventh",
-	"eighth","nineth","tenth"}; //these equation numbers will help in taking input
-//from the user	
 	char vars[]="xyzuvwtslm";	//these are the variable names that will be used when
 //printing equations
 	vector<string> parameters{"par1","par2","par3","par4","par5","par6","par7","par8",
@@ -195,10 +195,20 @@ modified*/
 	int free_col[MAX_SIZE];	//to contain the column numbers of columns 
 //with leading ones and free variables
 	int m,n,i,j;
-	int exit=1;
+	int exit=1,choice;
 	while(exit!=0)
 	{
 		col_i=row_i=a=b=0;
+		cout<<"What do you want to do? You can:\n1-Enter equations to solve\n2-Find determinant"
+		" of a matrix\nEnter the corresponding number\n";
+		cin>>choice;
+		if(choice==2)
+		{
+			make_triangular(choice);
+			cout<<"Enter 0 to exit. Else enter any number to continue\n";
+			cin>>exit;
+			continue;
+		}
 		puts("Enter the number of equations");
 		cin>>m;
 		puts("Enter the number of variables");
@@ -244,7 +254,7 @@ modified*/
 			make_one(obj.row,obj.col,n,A);
 			print_aug_matrix(m,n,A);
 			cout<<"\n----------------------------\n";
-			make_zero(obj.row,obj.col,m,n,A);
+			make_zero(choice,obj.row,obj.col,m,n,A);
 			print_aug_matrix(m,n,A);
 			cout<<"\n----------------------------\n";
 			if(obj.row==i)
@@ -405,18 +415,27 @@ void make_one(int i,int j,int n,vector<vector<fraction> >& A)
 		A[i][j]=A[i][j]/pivot;
 	}
 }
-void make_zero(int i,int j,int m,int n,vector<vector<fraction> >& A)
+void make_zero(int choice,int i,int j,int m,int n,vector<vector<fraction> >& A)
 //this function adds a multiple of ith row to each row to make the entries below and above
 //A[i][j] zero. So A[i][j] is the only nonzero entry in the jth column
 {
 	fraction minus(-1,1);
+	fraction one(1,1);
+	fraction pivot;
 	for(auto p=0;p<m;++p)
 	{
+		if(choice!=1&&p<i)
+			continue;
 		if(p==i)
 			continue;
 		else
 		{
-			fraction pivot=A[p][j];
+			if(choice!=1)
+			{
+				pivot=A[p][j]/A[i][j];
+			}
+			else
+				pivot=A[p][j];
 			if(pivot.get_num()==0)
 				continue;
 			for(auto col=0;col<n;++col)
@@ -522,5 +541,49 @@ int index(int j,int size,int a[])
 	{
 		if(a[i]==j)
 			return i;
+	}
+}
+/*------------------------------------------*/
+void make_triangular(int choice)
+{
+	auto size=0;
+	cout<<"Enter the size of the matrix\n";
+	cin>>size;
+	vector<vector<fraction> > A( size , vector<fraction> (size));
+	for(auto i=0;i<size;++i)
+	{
+		for(auto j=0;j<size;++j)
+		{
+			cout<<"Enter the number in "<<eq_number[i]<<" row "<<eq_number[j]<<" column\n";
+			cin>>A[i][j];
+		}
+	}
+	cout<<"The matrix you entered is as:\n";
+	for(auto i=0;i<size;++i)
+	{
+		for(auto j=0;j<size;++j)
+		{
+			cout<<" "<<A[i][j];
+		}
+		cout<<"\n";
+	}
+	for(auto i=0;i<size;++i)
+	{
+		indices obj=find_first_one(size,size+1,A);
+		if(obj.col==-1)
+			break;
+		make_zero(choice,obj.row,obj.col,size,size,A);
+		if(obj.row==i)
+			continue;
+		row_swap(i,obj.row,A);
+	}
+	if(choice==2)
+	{
+		fraction det(1,1);
+		for(auto i=0;i<size;++i)
+		{
+			det=det*A[i][i];
+		}
+		cout<<"The determinant is "<<det<<"\n";
 	}
 }
