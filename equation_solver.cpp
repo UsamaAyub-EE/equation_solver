@@ -8,14 +8,15 @@ struct indices
 {
 	int row,col;
 };
-#define MAX_SIZE 10	//to ensure that the code is parameterizable. see line 180
+#define MAX_SIZE 10	//to ensure that the code is parameterizable. see line 187
 int a,b;	//only find_first_one() uses these variables
 int lead_rows[MAX_SIZE],lead_cols[MAX_SIZE];	//to contain row numbers and column numbers
 //of leading 1s 
 int row_i,col_i;	//these act as both indices and sizes for lead_rows and lead_cols
 vector<string> eq_number{"first","second","third","fourth","fifth","sixth","seventh","eighth",
 "nineth","tenth"}; //these equation numbers will help in taking input
-//from the user	
+//from the user
+bool print_steps;
 class fraction
 {
 	int num,den;//numerator,denominator
@@ -176,14 +177,15 @@ bool is_I(int m,int n,vector<vector<fraction> > A);
 bool is_consistent(int m,int n,vector<vector<fraction> > A);
 bool is_member(int n,int size,int[]);
 int index(int j,int size,int[]);
+void find_inverse();
 int main()
 {
 	cout<<"This program solves m number of equations in n variables. It has been made entirely\n"
-	"by Usama Ayub and Muhammad Rizwan.\n";
+	"by Usama Ayub (2018-EE-124) and Muhammad Rizwan (2018-EE-38).\n";
 	cout<<"If you wish to enter a fraction,for example, simply type 3/4 and press enter to \n"
 	"input 3/4\n";
-/*this code can be modified to solve as many equations as is needed. parameters and vars will have to be modified only. and at line 10, the MAX_SIZE will have to be 
-modified*/
+/*this code can be modified to solve as many equations as is needed. parameters and vars will have
+ to be modified only. and at line 10, the MAX_SIZE will have to be modified*/
 	char vars[]="xyzuvwtslm";	//these are the variable names that will be used when
 //printing equations
 	vector<string> parameters{"par1","par2","par3","par4","par5","par6","par7","par8",
@@ -199,7 +201,7 @@ modified*/
 	while(exit!=0)
 	{
 		col_i=row_i=a=b=0;
-		cout<<"What do you want to do? You can:\n1-Enter equations to solve\n2-Find determinant"
+		cout<<"What do you want to do? You can:\n1-Enter equations to solve\n2-Find determinant\n3-Find inverse"
 		" of a matrix\nEnter the corresponding number\n";
 		cin>>choice;
 		if(choice==2)
@@ -209,6 +211,17 @@ modified*/
 			cin>>exit;
 			continue;
 		}
+		else if(choice==3)
+		{
+			find_inverse();
+			cout<<"\nEnter 0 to exit. Else enter any number to continue\n";
+			cin>>exit;
+			continue;
+		}
+		short steps;
+		puts("Do you wish to see the steps of Gauss-Jordan elimination.Enter 1 if yes.Else enter any number");
+		cin>>steps;
+		print_steps=(steps==1);
 		puts("Enter the number of equations");
 		cin>>m;
 		puts("Enter the number of variables");
@@ -252,16 +265,14 @@ modified*/
 			if(obj.col==-1)
 				break;
 			make_one(obj.row,obj.col,n,A);
-			print_aug_matrix(m,n,A);
-			cout<<"\n----------------------------\n";
+			if(print_steps)
+				print_aug_matrix(m,n,A);
 			make_zero(choice,obj.row,obj.col,m,n,A);
-			print_aug_matrix(m,n,A);
-			cout<<"\n----------------------------\n";
 			if(obj.row==i)
 				continue;
 			row_swap(i,obj.row,A);
-			print_aug_matrix(m,n,A);
-			cout<<"\n----------------------------\n";
+			if(print_steps)
+				print_aug_matrix(m,n,A);
 		}
 		auto no_of_par=n-1-col_i;	//no_of_par is the number of free variables	
 		for(auto i=0,ind=0;i<n-1;++i)
@@ -275,7 +286,7 @@ modified*/
 		auto I=is_I(m,n,A);	//I is true if A is identity matrix
 		if(B_zero&&I)
 		{
-			cout<<"The homogeneous system has no solution as A is non_singular\n";
+			cout<<"The homogeneous system has only the trivial solution as A is non_singular\n";
 		}
 		else if(!is_consistent(m,n,A))
 		{
@@ -410,6 +421,8 @@ void make_one(int i,int j,int n,vector<vector<fraction> >& A)
 	fraction pivot=A[i][j];
 	if(pivot.get_num()==1&&pivot.get_den()==1)
 		return;
+	if(print_steps)
+		cout<<"Dividing "<<eq_number[i]<<" row by "<<pivot<<"\n";
 	for(j=0;j<n;++j)
 	{
 		A[i][j]=A[i][j]/pivot;
@@ -438,10 +451,17 @@ void make_zero(int choice,int i,int j,int m,int n,vector<vector<fraction> >& A)
 				pivot=A[p][j];
 			if(pivot.get_num()==0)
 				continue;
+			if(print_steps)
+			{
+				cout<<"Multliplying "<<eq_number[i]<<" row by "<<(minus*pivot)<<" and adding it to ";
+				cout<<eq_number[p]<<" row\n";
+			}
 			for(auto col=0;col<n;++col)
 			{
 				A[p][col]=minus*pivot*A[i][col]+A[p][col];
 			}
+			if(print_steps)
+				print_aug_matrix(m,n,A);
 		}
 	}
 }
@@ -450,6 +470,8 @@ void row_swap(int i1,int i2,vector<vector<fraction> >& A)
 /*this function swaps rows. it's purpose is to bring the rows with leading 1s to the top 
 of the matrix and bring the 0s to the bottom*/
 	A[i1].swap(A[i2]);
+	if(print_steps)
+		cout<<"Interchanging "<<eq_number[i1]<<" and "<<eq_number[i2]<<"\n";
 	if(is_member(i1,row_i,lead_rows))
 	{
 		lead_rows[index(i1,row_i,lead_rows)]=i2;
@@ -473,6 +495,7 @@ void print_aug_matrix(int m,int n,vector<vector<fraction> > A)
 		}
 		cout<<"\n";
 	}
+	cout<<"\n----------------------------\n";
 }
 bool is_zero(int m,vector<fraction> B)
 /*this function checks to see if B is zero or not*/
@@ -546,7 +569,10 @@ int index(int j,int size,int a[])
 /*------------------------------------------*/
 void make_triangular(int choice)
 {
+	print_steps=false;
 	auto size=0;
+	fraction sign(1,1);
+	fraction minus(-1,1);
 	cout<<"Enter the size of the matrix\n";
 	cin>>size;
 	vector<vector<fraction> > A( size , vector<fraction> (size));
@@ -575,7 +601,11 @@ void make_triangular(int choice)
 		make_zero(choice,obj.row,obj.col,size,size,A);
 		if(obj.row==i)
 			continue;
-		row_swap(i,obj.row,A);
+		else
+		{
+			sign=sign*minus;
+			row_swap(i,obj.row,A);
+		}
 	}
 	if(choice==2)
 	{
@@ -584,6 +614,78 @@ void make_triangular(int choice)
 		{
 			det=det*A[i][i];
 		}
-		cout<<"The determinant is "<<det<<"\n";
+		cout<<"The determinant is "<<sign*det<<"\n";
+	}
+}
+/////////////////////find inverse-------------------------------------------------------------------------------------------------------------
+void find_inverse()
+{
+	print_steps=false;
+	int size;
+	puts("Enter the size of the matrix whose inverse you wish to find");
+	cin>>size;
+	vector<vector<fraction>> A( size , vector<fraction> (2*size));	//the matrix of the coefficients of the variables
+	for(auto i=0;i<size;++i)
+	{
+		for(auto j=0;j<size;++j)
+		{
+			cout<<"Enter the number in "<<eq_number[i]<<" row "<<eq_number[j]<<" column\n";
+			cin>>A[i][j];
+		}
+	}
+	cout<<"The matrix you entered is as:\n";
+	for(auto i=0;i<size;++i)
+	{
+		for(auto j=0;j<size;++j)
+		{
+			cout<<" "<<A[i][j];
+		}
+		cout<<"\n";
+	}
+	for(auto i=0;i<size;++i)//populating identity matrix
+	{
+		for(auto j=size;j<2*size;++j)
+		{
+			A[i][j]=fraction((i==j-size),1);
+		}
+	}
+	for(auto i=0;i<size;++i)//Gauss-Jordan elimination 
+	{
+		indices obj=find_first_one(size,2*size,A);
+		if(obj.col==-1)
+			break;
+		make_one(obj.row,obj.col,2*size,A);
+		make_zero(1,obj.row,obj.col,size,2*size,A);
+		if(obj.row==i)
+			continue;
+		row_swap(i,obj.row,A);
+	}
+	bool zero_row=false;
+	for(auto i=size-1;i>=0;--i)
+	{
+		if(zero_row)
+		{
+			puts("This matrix is singular.Its inverse does not exist.");
+			return;
+		}
+		for(auto j=0;j<size;++j)
+		{
+			if(A[i][j].get_num()!=0)
+				break;
+			if(A[i][j].get_num()==0&&j==(size-1))
+			{
+				zero_row=true;
+				break;
+			}
+		}
+	}
+	puts("The inverse of the matrix you entered is as under:");
+	for(auto i=0;i<size;++i)//populating identity matrix
+	{
+		for(auto j=size;j<2*size;++j)
+		{
+			cout<<" "<<A[i][j];
+		}
+		cout<<"\n";
 	}
 }
