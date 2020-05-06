@@ -8,11 +8,10 @@ struct indices
 {
 	int row,col;
 };
-#define MAX_SIZE 10	//to ensure that the code is parameterizable. see line 187
+#define MAX_SIZE 10	//to ensure that the code is parameterizable. see line 186
 int a,b;	//only find_first_one() uses these variables
-int lead_rows[MAX_SIZE],lead_cols[MAX_SIZE];	//to contain row numbers and column numbers
+vector<int> lead_rows(MAX_SIZE),lead_cols(MAX_SIZE);	//to contain row numbers and column numbers
 //of leading 1s 
-int row_i,col_i;	//these act as both indices and sizes for lead_rows and lead_cols
 vector<string> eq_number{"first","second","third","fourth","fifth","sixth","seventh","eighth",
 "nineth","tenth"}; //these equation numbers will help in taking input
 //from the user
@@ -175,8 +174,8 @@ void print_aug_matrix(int m,int n,vector<vector<fraction> > A);
 bool is_zero(int m,vector<fraction> B);
 bool is_I(int m,int n,vector<vector<fraction> > A);
 bool is_consistent(int m,int n,vector<vector<fraction> > A);
-bool is_member(int n,int size,int[]);
-int index(int j,int size,int[]);
+bool is_member(int n,int size,vector<int>);
+int index(int j,int size,vector<int>);
 void find_inverse();
 int main()
 {
@@ -194,13 +193,16 @@ int main()
 	fraction zero(0,1);	//it's purpose is simply to check whether a fraction is 
 //greater than zero or not
 	fraction minus(-1,1);	//to multiply a fraction by -1
-	int free_col[MAX_SIZE];	//to contain the column numbers of columns 
+	vector<int> free_col(MAX_SIZE);	//to contain the column numbers of columns 
 //with leading ones and free variables
 	int m,n,i,j;
 	int exit=1,choice;
 	while(exit!=0)
 	{
-		col_i=row_i=a=b=0;
+		free_col.clear();
+		lead_rows.clear();
+		lead_cols.clear();
+		a=b=0;
 		cout<<"What do you want to do? You can:\n1-Enter equations to solve\n2-Find determinant\n3-Find inverse"
 		" of a matrix\nEnter the corresponding number\n";
 		cin>>choice;
@@ -274,12 +276,12 @@ int main()
 			if(print_steps)
 				print_aug_matrix(m,n,A);
 		}
-		auto no_of_par=n-1-col_i;	//no_of_par is the number of free variables	
-		for(auto i=0,ind=0;i<n-1;++i)
+		auto no_of_par=n-1-lead_cols.size();	//no_of_par is the number of free variables	
+		for(auto i=0;i<n-1;++i)
 		{
-			if(!is_member(i,col_i,lead_cols))
+			if(!is_member(i,lead_cols.size(),lead_cols))
 			{
-				free_col[ind++]=i;
+				free_col.push_back(i);
 			}
 		}
 		auto B_zero=is_zero(m,B);	//B_zero is true if B is zero
@@ -320,7 +322,7 @@ int main()
 				for(q=0;q<(n-1);++q)
 				{
 //this if checks to see if A[p][q] is a leading 1
-					if(A[p][q].get_num()==1&&A[p][q].get_den()==1&&is_member(q,(n-1-no_of_par),lead_cols))
+					if(A[p][q].get_num()==1&&A[p][q].get_den()==1&&is_member(q,lead_cols.size(),lead_cols))
 					{
 						cout<<vars[q]<<" = ";
 						pass=true;
@@ -331,13 +333,13 @@ int main()
 					if(!pass)
 /*if a leading 1 is not found yet, then continue*/
 						continue;
-					if(!is_member(q,(n-1-no_of_par),lead_cols)&&A[p][q].get_num()!=0)
+					if(!is_member(q,lead_cols.size(),lead_cols)&&A[p][q].get_num()!=0)
 /*this checks to see if A[p][q] is a free variable*/
 					{
 						print=true;
 						new_line=true;
 /*print is true as something is printed on right side of = sign in this block*/
-						par_no=index(q,(no_of_par+1),free_col);
+						par_no=index(q,free_col.size(),free_col);
 						string sign;
 						sign=(!(A[p][q]>zero)?" +":" ");
 						cout<<sign<<(minus*A[p][q])<<"."<<parameters[par_no];
@@ -362,9 +364,9 @@ int main()
 /*this section prints all the parameters used in the solution*/
 			for(auto var_no=0;var_no<(n-1);++var_no)
 			{
-				if(!is_member(var_no,(n-1-no_of_par),lead_cols))
+				if(!is_member(var_no,lead_cols.size(),lead_cols))
 				{
-					par_no=index(var_no,(no_of_par+1),free_col);
+					par_no=index(var_no,free_col.size(),free_col);
 					cout<<vars[var_no]<<" = "<<parameters[par_no]<<"\n";
 				}
 			}
@@ -396,13 +398,13 @@ indices find_first_one(int m,int n,vector<vector<fraction> > A)
 	{
 		for(a=0;a<m;++a)
 		{
-			if(A[a][b].get_num()!=0&&!is_member(a,row_i,lead_rows))	//to check whether A[i][j] is zero or not
+			if(A[a][b].get_num()!=0&&!is_member(a,lead_rows.size(),lead_rows))	//to check whether A[i][j] is zero or not
 			{
 				indices obj;
 				obj.row=a;
 				obj.col=b;
-				lead_rows[row_i++]=a;
-				lead_cols[col_i++]=b;
+				lead_rows.push_back(a);
+				lead_cols.push_back(b);
 				++b;
 				return obj;
 			}
@@ -472,14 +474,6 @@ of the matrix and bring the 0s to the bottom*/
 	A[i1].swap(A[i2]);
 	if(print_steps)
 		cout<<"Interchanging "<<eq_number[i1]<<" and "<<eq_number[i2]<<"\n";
-	if(is_member(i1,row_i,lead_rows))
-	{
-		lead_rows[index(i1,row_i,lead_rows)]=i2;
-	}
-	if(is_member(i2,row_i,lead_rows))
-	{
-		lead_rows[index(i2,row_i,lead_rows)]=i1;
-	}
 }
 void print_aug_matrix(int m,int n,vector<vector<fraction> > A)
 {
@@ -511,12 +505,12 @@ bool is_I(int m,int n,vector<vector<fraction> > A)
 /*this function checks if A is identity matrix or not*/
 {
 	if(m!=(n-1))
-		return 0;
-	int sum=0,j=0;
+		return false;
+	int sum=0;
 	for(auto i=0;i<m;++i)
 	{
 		sum=0;
-		for(j=0;j<(n-1);++j)
+		for(auto j=0;j<(n-1);++j)
 		{
 			sum+=A[i][j].get_num();
 		}
@@ -547,8 +541,8 @@ in the right most column in augmented matrix*/
 	}
 	return true;
 }
-bool is_member(int n,int size,int a[])
-/*this function checks whether n is in a[] or not*/
+bool is_member(int n,int size,vector<int> a)
+/*this function checks whether n is in a or not*/
 {
 	for(auto i=0;i<size;++i)
 	{
@@ -557,8 +551,8 @@ bool is_member(int n,int size,int a[])
 	}
 	return false;
 }
-int index(int j,int size,int a[])
-/*this function returns the index at which j is present in a[]*/
+int index(int j,int size,vector<int> a)
+/*this function returns the index at which j is present in a*/
 {
 	for(auto i=0;i<size;++i)
 	{
