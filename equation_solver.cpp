@@ -8,10 +8,7 @@ struct indices
 {
 	int row,col;
 };
-#define MAX_SIZE 10	//to ensure that the code is parameterizable. see line 186
-int a,b;	//only find_first_one() uses these variables
-vector<int> lead_rows(MAX_SIZE),lead_cols(MAX_SIZE);	//to contain row numbers and column numbers
-//of leading 1s 
+#define MAX_SIZE 10	//to ensure that the code is parameterizable. see line 188
 vector<string> eq_number{"first","second","third","fourth","fifth","sixth","seventh","eighth",
 "nineth","tenth"}; //these equation numbers will help in taking input
 //from the user
@@ -57,6 +54,7 @@ class fraction
 		fraction operator * (fraction const &);
 		fraction operator / (fraction const &);
 		bool operator > (fraction const &);
+		bool operator == (fraction const &);
 
 };
 //the definitions of all the functions or methods declared in the class
@@ -166,7 +164,11 @@ bool fraction::operator >(fraction const &obj)
 	else
 		return false;
 }
-indices find_first_one(int m,int n,vector<vector<fraction> > A);
+bool fraction::operator ==(fraction const &obj)
+{
+	return num==obj.num && den==obj.den;
+}
+indices find_first_one(int i,int n,int m,vector<vector<fraction> > A,int&,vector<int>&);
 void make_one(int i,int j,int n,vector<vector<fraction> >& A);
 void make_zero(int choice,int i,int j,int m,int n,vector<vector<fraction> >& A);
 void row_swap(int i1,int i2,vector<vector<fraction> >& A);
@@ -184,25 +186,21 @@ int main()
 	cout<<"If you wish to enter a fraction,for example, simply type 3/4 and press enter to \n"
 	"input 3/4\n";
 /*this code can be modified to solve as many equations as is needed. parameters and vars will have
- to be modified only. and at line 10, the MAX_SIZE will have to be modified*/
+ to be modified only. and at line 11, the MAX_SIZE will have to be modified*/
 	char vars[]="xyzuvwtslm";	//these are the variable names that will be used when
 //printing equations
 	vector<string> parameters{"par1","par2","par3","par4","par5","par6","par7","par8",
 	"par9","par10"};	//these are the parameters we'll use to print the solutions
 //in case of infinitely many solutions
+	vector<int> lead_cols(MAX_SIZE);	//to contain column numbers of leading 1s 
 	fraction zero(0,1);	//it's purpose is simply to check whether a fraction is 
 //greater than zero or not
 	fraction minus(-1,1);	//to multiply a fraction by -1
-	vector<int> free_col(MAX_SIZE);	//to contain the column numbers of columns 
-//with leading ones and free variables
 	int m,n,i,j;
 	int exit=1,choice;
 	while(exit!=0)
 	{
-		free_col.clear();
-		lead_rows.clear();
 		lead_cols.clear();
-		a=b=0;
 		cout<<"What do you want to do? You can:\n1-Enter equations to solve\n2-Find determinant\n3-Find inverse"
 		" of a matrix\nEnter the corresponding number\n";
 		cin>>choice;
@@ -261,9 +259,10 @@ int main()
 		}
 		++n;	//this particular line is very important. Now, the value of n is the number of
 //columns in augmented matrix 
+		int curr_col=0;
 		for(i=0;i<m;++i)
 		{
-			indices obj=find_first_one(m,n,A);
+			indices obj=find_first_one(i,n,m,A,curr_col,lead_cols);
 			if(obj.col==-1)
 				break;
 			make_one(obj.row,obj.col,n,A);
@@ -277,6 +276,7 @@ int main()
 				print_aug_matrix(m,n,A);
 		}
 		auto no_of_par=n-1-lead_cols.size();	//no_of_par is the number of free variables	
+		vector<int> free_col;
 		for(auto i=0;i<n-1;++i)
 		{
 			if(!is_member(i,lead_cols.size(),lead_cols))
@@ -302,7 +302,7 @@ int main()
 				cout<<vars[p]<<" = "<<A[p][n-1]<<"\n";
 			}
 		}
-		else if(m>(n-1)&&!B_zero&&no_of_par==0)
+		else if(m>(n-1)&&no_of_par==0)
 		{
 			cout<<"The solution is as under\n";
 			for(auto p=0;p<(n-1);++p)
@@ -392,27 +392,25 @@ int GCD(int n,int m)
 //this function returns the indices of the first non-zero number in a column
 //if there is no non zero number in first column, it moves to the next column to the 
 //point it finds a nonzero number and then returns the indices of that number 
-indices find_first_one(int m,int n,vector<vector<fraction> > A)
+indices find_first_one(int i,int n,int m,vector<vector<fraction> > A,int& curr_col,vector<int>& lead_cols)
 {
-	for(;b<(n-1);++b)
+	for(;curr_col<(n-1);++curr_col)
 	{
-		for(a=0;a<m;++a)
+		for(auto a=i;a<m;++a)
 		{
-			if(A[a][b].get_num()!=0&&!is_member(a,lead_rows.size(),lead_rows))	//to check whether A[i][j] is zero or not
+			if(A[a][curr_col].get_num()!=0)	//to check whether A[i][j] is zero or not
 			{
 				indices obj;
 				obj.row=a;
-				obj.col=b;
-				lead_rows.push_back(a);
-				lead_cols.push_back(b);
-				++b;
+				obj.col=curr_col;
+				lead_cols.push_back(curr_col);
+				++curr_col;
 				return obj;
 			}
 		}
 	}
 	indices null;
 	null.col=null.row=-1;
-	a=b=0;
 	return null;	//null will be returned in case of a null matrix or when the end of a
 //matrix is reached
 }
@@ -473,7 +471,7 @@ void row_swap(int i1,int i2,vector<vector<fraction> >& A)
 of the matrix and bring the 0s to the bottom*/
 	A[i1].swap(A[i2]);
 	if(print_steps)
-		cout<<"Interchanging "<<eq_number[i1]<<" and "<<eq_number[i2]<<"\n";
+		cout<<"Interchanging "<<eq_number[i1]<<" and "<<eq_number[i2]<<" rows"<<"\n";
 }
 void print_aug_matrix(int m,int n,vector<vector<fraction> > A)
 {
@@ -506,18 +504,27 @@ bool is_I(int m,int n,vector<vector<fraction> > A)
 {
 	if(m!=(n-1))
 		return false;
-	int sum=0;
+	fraction zero(0,1);
+	fraction unity(1,1);
 	for(auto i=0;i<m;++i)
 	{
-		sum=0;
 		for(auto j=0;j<(n-1);++j)
 		{
-			sum+=A[i][j].get_num();
+			if(i==j)
+			{
+				if(A[i][j]==unity)
+					continue;
+				else
+					return false;
+			}
+			if(i!=j)
+			{
+				if(A[i][j]==zero)
+					continue;
+				else
+					return false;
+			}
 		}
-		if(sum==1)
-			continue;
-		else
-			return false;
 	}
 	return true;
 }
@@ -587,9 +594,11 @@ void make_triangular(int choice)
 		}
 		cout<<"\n";
 	}
+	int curr_col=0;
+	vector<int> lead_cols;
 	for(auto i=0;i<size;++i)
 	{
-		indices obj=find_first_one(size,size+1,A);
+		indices obj=find_first_one(i,size+1,size,A,curr_col,lead_cols);
 		if(obj.col==-1)
 			break;
 		make_zero(choice,obj.row,obj.col,size,size,A);
@@ -643,9 +652,11 @@ void find_inverse()
 			A[i][j]=fraction((i==j-size),1);
 		}
 	}
+	int curr_col=0;
+	vector<int> lead_cols;
 	for(auto i=0;i<size;++i)//Gauss-Jordan elimination 
 	{
-		indices obj=find_first_one(size,2*size,A);
+		indices obj=find_first_one(i,size+1,size,A,curr_col,lead_cols);
 		if(obj.col==-1)
 			break;
 		make_one(obj.row,obj.col,2*size,A);
